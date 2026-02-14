@@ -24,4 +24,9 @@ module.exports = class JavaRealmAPI extends RealmAPI {
     const data = await this.rest.get(`/worlds/${realmId}/slot/${slotId}/download`)
     return new Download(this, data)
   }
+
+  async getLivePlayerLists () {
+    const data = await this.rest.get('/activities/liveplayerlist')
+    return data
+  }
 }
