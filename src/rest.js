@@ -17,6 +17,10 @@ module.exports = class Rest {
       this.getAuth = () => authflow.getMinecraftJavaToken({ fetchProfile: true }).then(formatJavaAuth)
     }
     this.maxRetries = options.maxRetries ?? 4
+    this.authCacheTtl = options.authCacheTtl ?? 60000
+    this.authCache = null
+    this.authCacheExpiresAt = 0
+    this.authInFlight = null
   }
 
   get (route, options) {
@@ -51,7 +55,7 @@ module.exports = class Rest {
     }
 
     if (!this.options.skipAuth) {
-      const [key, value] = await this.getAuth()
+      const [key, value] = await this.getAuthHeader()
       headers[key] = value
     }
 
@@ -69,6 +73,27 @@ module.exports = class Rest {
     }
 
     return this.execRequest(url, fetchOptions)
+  }
+
+  async getAuthHeader () {
+    const now = Date.now()
+    if (this.authCache && now < this.authCacheExpiresAt) return this.authCache
+
+    if (this.authInFlight) return this.authInFlight
+
+    this.authInFlight = this.getAuth().then(auth => {
+      if (this.authCacheTtl > 0) {
+        this.authCache = auth
+        this.authCacheExpiresAt = Date.now() + this.authCacheTtl
+      }
+      this.authInFlight = null
+      return auth
+    }).catch(error => {
+      this.authInFlight = null
+      throw error
+    })
+
+    return this.authInFlight
   }
 
   async execRequest (url, options, retries = 0) {

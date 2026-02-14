@@ -5,6 +5,7 @@ declare module 'prismarine-realms' {
   export class Options {
     skipAuth?: Boolean
     maxRetries?: Number
+    authCacheTtl?: Number
     usePreview?: Boolean // Bedrock only
   }
 
